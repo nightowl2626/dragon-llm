@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#151811" />
+  <title>Ember — Dragon Trainer</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10120e;
+      --panel: #171a14;
+      --panel-2: #20251b;
+      --text: #f4f2e8;
+      --muted: #a7ad9c;
+      --accent: #b7ef72;
+      --accent-dark: #213116;
+      --border: rgba(255, 255, 255, 0.09);
+      --user: #2a3421;
+      --assistant: #1b1f18;
+      --danger: #ff8a80;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100dvh;
+      overscroll-behavior: none;
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .app {
+      width: min(100%, 760px);
+      min-height: 100dvh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background:
+        radial-gradient(circle at top right, rgba(183, 239, 114, 0.08), transparent 32%),
+        var(--bg);
+    }
+
+    .topbar {
+      padding:
+        calc(14px + env(safe-area-inset-top))
+        16px
+        12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(16, 18, 14, 0.88);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 44px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      font-size: 25px;
+      background: linear-gradient(145deg, #334527, #1c2517);
+      border: 1px solid rgba(183, 239, 114, 0.22);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    }
+
+    .identity {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .identity h1 {
+      font-size: 16px;
+      line-height: 1.2;
+      margin: 0;
+      font-weight: 720;
+      letter-spacing: -0.01em;
+    }
+
+    .identity p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .voice-toggle {
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .voice-toggle.active {
+      color: #10120e;
+      background: var(--accent);
+    }
+
+    .messages {
+      overflow-y: auto;
+      padding: 22px 14px 28px;
+      scroll-behavior: smooth;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 8vh 20px 28px;
+      color: var(--muted);
+    }
+
+    .hero .big-dragon {
+      font-size: 56px;
+      margin-bottom: 12px;
+    }
+
+    /* Optional 3D avatar. The emoji stays visible until WebGL is ready. */
+    .hero .big-dragon.dragon-ready {
+      width: min(100%, 380px);
+      height: 260px;
+      margin: -40px auto 12px;
+      font-size: 0;
+      background: radial-gradient(ellipse, rgba(183, 239, 114, 0.12), transparent 68%);
+    }
+
+    .big-dragon canvas { display: block; width: 100%; height: 100%; }
+
+    .hero h2 {
+      color: var(--text);
+      margin: 0 0 8px;
+      font-size: 23px;
+      letter-spacing: -0.025em;
+    }
+
+    .hero p {
+      margin: 0 auto;
+      max-width: 380px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .suggestions {
+      display: grid;
+      gap: 8px;
+      margin: 20px auto 0;
+      max-width: 440px;
+    }
+
+    .suggestion {
+      width: 100%;
+      min-height: 46px;
+      padding: 11px 14px;
+      text-align: left;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .message {
+      display: flex;
+      gap: 9px;
+      align-items: flex-end;
+      margin: 0 0 16px;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .mini-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 30px;
+      background: var(--panel-2);
+      font-size: 17px;
+    }
+
+    .bubble-wrap {
+      max-width: min(82%, 560px);
+    }
+
+    .bubble {
+      padding: 11px 13px;
+      border-radius: 18px;
+      line-height: 1.48;
+      font-size: 15px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      border: 1px solid var(--border);
+    }
+
+    .assistant .bubble {
+      background: var(--assistant);
+      border-bottom-left-radius: 5px;
+    }
+
+    .user .bubble {
+      background: var(--user);
+      border-bottom-right-radius: 5px;
+    }
+
+    .bubble-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 5px;
+    }
+
+    .speak-message {
+      color: var(--muted);
+      background: transparent;
+      min-width: 34px;
+      min-height: 32px;
+      border-radius: 10px;
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 0 14px 8px;
+      min-height: 23px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .composer-shell {
+      border-top: 1px solid var(--border);
+      background: rgba(16, 18, 14, 0.92);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding:
+        10px
+        12px
+        calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 46px 1fr 46px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .icon-button {
+      width: 46px;
+      height: 46px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      font-size: 19px;
+    }
+
+    .icon-button.primary {
+      color: #10120e;
+      background: var(--accent);
+    }
+
+    .icon-button.recording {
+      background: #66352e;
+      animation: pulse 1.15s infinite;
+    }
+
+    @keyframes pulse {
+      50% { transform: scale(0.94); opacity: 0.82; }
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 46px;
+      max-height: 130px;
+      resize: none;
+      border: 1px solid var(--border);
+      outline: 0;
+      border-radius: 15px;
+      padding: 12px 13px;
+      background: var(--panel);
+      color: var(--text);
+
+      /* 16px prevents iOS Safari from zooming the page on focus. */
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    textarea::placeholder {
+      color: #7f8776;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    @media (min-width: 700px) {
+      body {
+        padding: 18px 0;
+      }
+
+      .app {
+        min-height: calc(100dvh - 36px);
+        max-height: calc(100dvh - 36px);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="avatar" aria-hidden="true">🐉</div>
+
+      <div class="identity">
+        <h1>Ember</h1>
+        <p>your tiny dragon trainer · Qwen on Modal</p>
+      </div>
+
+      <button id="voiceToggle" class="voice-toggle" type="button">
+        🔇 Voice
+      </button>
+    </header>
+
+    <section id="messages" class="messages" aria-live="polite">
+      <div id="hero" class="hero">
+        <div class="big-dragon" role="img" aria-label="Ember, a friendly green dragon">🐉</div>
+        <h2>What shall we train today?</h2>
+        <p>
+          Type a message, or tap the microphone and talk to Ember.
+        </p>
+
+        <div class="suggestions">
+          <button class="suggestion" data-prompt="How do I train a baby dragon?">
+            How do I train a baby dragon?
+          </button>
+          <button class="suggestion" data-prompt="Explain transformers like I'm a dragon hatchling.">
+            Explain transformers like I'm a dragon hatchling.
+          </button>
+          <button class="suggestion" data-prompt="Should I deploy to production on Friday?">
+            Should I deploy to production on Friday?
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div>
+      <div id="status" class="status"></div>
+
+      <footer class="composer-shell">
+        <div class="composer">
+          <button
+            id="micButton"
+            class="icon-button"
+            type="button"
+            aria-label="Record voice message"
+            title="Record voice message"
+          >
+            🎙️
+          </button>
+
+          <textarea
+            id="input"
+            rows="1"
+            maxlength="2000"
+            placeholder="Message Ember..."
+            aria-label="Message"
+          ></textarea>
+
+          <button
+            id="sendButton"
+            class="icon-button primary"
+            type="button"
+            aria-label="Send message"
+            title="Send"
+          >
+            ➤
+          </button>
+        </div>
+      </footer>
+    </div>
+  </main>
+
+  <!-- OPTIONAL: remove this one tag to restore the emoji-only welcome. -->
+  <script src="dragon.js" defer></script>
+  <script>
+    // Paste the URL printed by `modal deploy backend.py`.
+    // Example:
+    // const API_BASE = "https://yourname--dragon-trainer-web.modal.run";
+    const API_BASE = "https://nightowl2626--dragon-trainer-web.modal.run";
+
+    const messagesEl = document.getElementById("messages");
+    const heroEl = document.getElementById("hero");
+    const inputEl = document.getElementById("input");
+    const sendButton = document.getElementById("sendButton");
+    const micButton = document.getElementById("micButton");
+    const voiceToggle = document.getElementById("voiceToggle");
+    const statusEl = document.getElementById("status");
+
+    // Workshop: history lives only in this tab. Refreshing starts a new chat.
+    // The backend receives this array, then keeps its last 10 messages.
+    const conversation = [];
+    let busy = false;
+    let voiceReplies = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let audioContext = null;
+
+    function endpoint(path) {
+      return `${API_BASE.replace(/\/$/, "")}${path}`;
+    }
+
+    function setStatus(message = "", isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function setBusy(value) {
+      busy = value;
+      sendButton.disabled = value;
+      micButton.disabled = value && !mediaRecorder;
+    }
+
+    function scrollToBottom() {
+      requestAnimationFrame(() => {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      });
+    }
+
+    function removeHero() {
+      if (heroEl && heroEl.isConnected) {
+        heroEl.remove();
+      }
+    }
+
+    function addMessage(role, text) {
+      removeHero();
+
+      const row = document.createElement("div");
+      row.className = `message ${role}`;
+
+      const bubbleWrap = document.createElement("div");
+      bubbleWrap.className = "bubble-wrap";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+
+      bubbleWrap.appendChild(bubble);
+
+      if (role === "assistant") {
+        const avatar = document.createElement("div");
+        avatar.className = "mini-avatar";
+        avatar.textContent = "🐉";
+        row.appendChild(avatar);
+
+        const actions = document.createElement("div");
+        actions.className = "bubble-actions";
+
+        const speakButton = document.createElement("button");
+        speakButton.className = "speak-message";
+        speakButton.type = "button";
+        speakButton.textContent = "🔊";
+        speakButton.title = "Read aloud";
+        speakButton.ariaLabel = "Read this response aloud";
+        speakButton.addEventListener("click", () => speak(text));
+
+        actions.appendChild(speakButton);
+        bubbleWrap.appendChild(actions);
+      }
+
+      row.appendChild(bubbleWrap);
+      messagesEl.appendChild(row);
+      scrollToBottom();
+    }
+
+    function autoResize() {
+      inputEl.style.height = "46px";
+      inputEl.style.height = `${Math.min(inputEl.scrollHeight, 130)}px`;
+    }
+
+    async function sendMessage(textOverride = null) {
+      if (busy) return;
+
+      const text = (textOverride ?? inputEl.value).trim();
+      if (!text) return;
+
+      conversation.push({ role: "user", content: text });
+      addMessage("user", text);
+
+      inputEl.value = "";
+      autoResize();
+      setBusy(true);
+      setStatus("Ember is thinking…");
+
+      try {
+        const response = await fetch(endpoint("/chat"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: conversation }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Chat request failed (${response.status})`);
+        }
+
+        const data = await response.json();
+        const answer = data.response;
+
+        conversation.push({ role: "assistant", content: answer });
+        addMessage("assistant", answer);
+        setStatus("");
+
+        if (voiceReplies) {
+          await speak(answer);
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus(
+          "Could not reach Ember. Check your Modal URL and deployment.",
+          true
+        );
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function ensureAudioContext() {
+      if (!audioContext) {
+        const AudioContextClass =
+          window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContextClass();
+      }
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+    }
+
+    async function speak(text) {
+      try {
+        setStatus("Ember is speaking…");
+
+        await ensureAudioContext();
+
+        const response = await fetch(endpoint("/speak"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Speech request failed (${response.status})`);
+        }
+
+        const bytes = await response.arrayBuffer();
+        const decoded = await audioContext.decodeAudioData(bytes.slice(0));
+
+        const source = audioContext.createBufferSource();
+        source.buffer = decoded;
+        source.connect(audioContext.destination);
+        source.start(0);
+
+        source.addEventListener("ended", () => setStatus(""));
+      } catch (error) {
+        console.error(error);
+        setStatus("Voice playback failed.", true);
+      }
+    }
+
+    function chooseRecordingMimeType() {
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/mp4",
+        "audio/webm",
+      ];
+
+      return candidates.find((type) => MediaRecorder.isTypeSupported(type));
+    }
+
+    async function startRecording() {
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        setStatus("Voice recording is not supported in this browser.", true);
+        return;
+      }
+
+      try {
+        // Resuming audio here is useful on mobile, where playback generally
+        // needs to be unlocked by a user gesture.
+        await ensureAudioContext();
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mimeType = chooseRecordingMimeType();
+
+        mediaRecorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+
+        recordedChunks = [];
+
+        mediaRecorder.addEventListener("dataavailable", (event) => {
+          if (event.data.size > 0) recordedChunks.push(event.data);
+        });
+
+        mediaRecorder.addEventListener("stop", async () => {
+          stream.getTracks().forEach((track) => track.stop());
+
+          const type = mediaRecorder.mimeType || "audio/webm";
+          const blob = new Blob(recordedChunks, { type });
+
+          mediaRecorder = null;
+          micButton.classList.remove("recording");
+          micButton.textContent = "🎙️";
+          micButton.ariaLabel = "Record voice message";
+
+          await transcribeAndSend(blob);
+        });
+
+        mediaRecorder.start();
+        micButton.classList.add("recording");
+        micButton.textContent = "■";
+        micButton.ariaLabel = "Stop recording";
+        setStatus("Listening… tap the microphone again when you're done.");
+      } catch (error) {
+        console.error(error);
+        setStatus("Microphone access was not available.", true);
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        setStatus("Transcribing with ElevenLabs…");
+      }
+    }
+
+    async function transcribeAndSend(blob) {
+      setBusy(true);
+      setStatus("Transcribing with ElevenLabs…");
+
+      try {
+        const form = new FormData();
+        const extension = blob.type.includes("mp4") ? "m4a" : "webm";
+        form.append("audio", blob, `voice.${extension}`);
+
+        const response = await fetch(endpoint("/transcribe"), {
+          method: "POST",
+          body: form,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Transcription failed (${response.status})`);
+        }
+
+        const data = await response.json();
+        const transcript = data.text.trim();
+
+        if (!transcript) {
+          setStatus("I couldn't hear anything. Try again.", true);
+          return;
+        }
+
+        setBusy(false);
+        setStatus("");
+        await sendMessage(transcript);
+      } catch (error) {
+        console.error(error);
+        setStatus("Voice transcription failed.", true);
+      } finally {
+        if (busy) setBusy(false);
+      }
+    }
+
+    micButton.addEventListener("click", () => {
+      if (mediaRecorder?.state === "recording") {
+        stopRecording();
+      } else if (!busy) {
+        startRecording();
+      }
+    });
+
+    sendButton.addEventListener("click", () => sendMessage());
+
+    inputEl.addEventListener("input", autoResize);
+
+    inputEl.addEventListener("keydown", (event) => {
+      // Desktop convenience. On mobile, Enter stays available for multiline text.
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        window.matchMedia("(pointer: fine)").matches
+      ) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    voiceToggle.addEventListener("click", async () => {
+      voiceReplies = !voiceReplies;
+      voiceToggle.classList.toggle("active", voiceReplies);
+      voiceToggle.textContent = voiceReplies ? "🔊 Voice" : "🔇 Voice";
+
+      if (voiceReplies) {
+        try {
+          await ensureAudioContext();
+        } catch (_) {}
+      }
+    });
+
+    document.querySelectorAll(".suggestion").forEach((button) => {
+      button.addEventListener("click", () => sendMessage(button.dataset.prompt));
+    });
+  </script>
+</body>
+</html>
